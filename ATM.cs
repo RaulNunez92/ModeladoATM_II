@@ -1,143 +1,101 @@
-namespace ModeladoATM
+namespace ModeladoATM;
+
+// APLICACIÓN DE COMPOSICIÓN: ATM "TIENE UN" DispensadorEfectivo
+public class ATM
 {
-    public class ATM
+    private readonly DispensadorEfectivo _dispensador;
+    private int _numeroCuenta;
+    private decimal _saldoCuenta;
+
+    public ATM(decimal fondoCajeroInicial)
     {
-        // Composición: el ATM tiene un dispensador y la base de datos de cuentas
-        private readonly DispensadorEfectivo dispensador;
-        private List<CuentaBancaria> baseDeDatosCuentas = new List<CuentaBancaria>();
+        // Composición: el ATM crea y administra el ciclo de vida del dispensador
+        _dispensador = new DispensadorEfectivo(fondoCajeroInicial);
+    }
 
-        public ATM()
-        {
-            dispensador = new DispensadorEfectivo(20000m); // RD$ 20,000 en el cajero
-            InicializarCuentas();
-        }
+    // Método principal interactivo para la simulación
+    public void Iniciar()
+    {
+        Console.Clear();
+        Console.WriteLine("==========================================================");
+        Console.WriteLine("            SISTEMA DE CAJERO AUTOMÁTICO (DEITEL)         ");
+        Console.WriteLine("==========================================================");
 
-        private void InicializarCuentas()
+        // Captura dinámica interactiva de la cuenta del usuario
+        _numeroCuenta = CapturarEntero("Ingrese su Número de Cuenta: ");
+        _saldoCuenta = CapturarDecimal("Ingrese el Saldo Inicial disponible en la cuenta: RD$ ");
+
+        bool enSesion = true;
+
+        do
         {
-            baseDeDatosCuentas = new List<CuentaBancaria>
+            Console.WriteLine("\n----------------------------------------------------------");
+            Console.WriteLine($" SESIÓN ACTIVA | Cuenta: #{_numeroCuenta} | Saldo: RD$ {_saldoCuenta:N2}");
+            Console.WriteLine($" Reserva física en Cajero: RD$ {_dispensador.EfectivoDisponible:N2}");
+            Console.WriteLine("----------------------------------------------------------");
+            Console.WriteLine("1. Realizar Retiro de Efectivo");
+            Console.WriteLine("2. Consultar Saldo Actual");
+            Console.WriteLine("3. Finalizar Sesión");
+            Console.Write("Seleccione una opción (1-3): ");
+
+            string opcion = Console.ReadLine() ?? "";
+
+            switch (opcion)
             {
-                new CuentaBancaria("0xA12F", "Raynieri Raúl Núñez", 1001, "1234", 55000.00m, "Desarrollador de Software"),
-                new CuentaBancaria("0xB34C", "Carlos Manuel Tejeda", 1002, "4321", 82500.00m, "Ingeniero Civil"),
-                new CuentaBancaria("0xC78D", "Laura Patricia Gómez", 1003, "7890", 34200.00m, "Diseñadora Gráfica"),
-                new CuentaBancaria("0xD91E", "Miguel Ángel Rosario", 1004, "5566", 67800.00m, "Contador Público"),
-                new CuentaBancaria("0xE45A", "Carmen Rosa Morales", 1005, "9988", 95000.00m, "Médica Pediatra")
-            };
-        }
-
-        public void Iniciar()
-        {
-            while (true)
-            {
-                Console.Clear();
-                Console.WriteLine("==========================================================");
-                Console.WriteLine("            BANCO NACIONAL - SISTEMA ATM II               ");
-                Console.WriteLine("==========================================================");
-
-                Console.Write("\nIngrese su Número de Cuenta (o '0' para apagar): ");
-                if (!int.TryParse(Console.ReadLine(), out int noCuenta) || noCuenta == 0)
-                {
-                    Console.WriteLine("Cajero en modo reposo. ¡Hasta pronto!");
+                case "1":
+                    decimal montoRetiro = CapturarDecimal("\nIngrese el monto a retirar: RD$ ");
+                    Retiro transaccionRetiro = new Retiro(_numeroCuenta, montoRetiro, _dispensador);
+                    transaccionRetiro.Ejecutar(ref _saldoCuenta);
+                    Pausar();
                     break;
-                }
 
-                // Búsqueda en la colección de cuentas
-                CuentaBancaria? cuentaAutenticada = baseDeDatosCuentas.Find(c => c.NumeroCuenta == noCuenta);
+                case "2":
+                    decimal montoDeposito = CapturarDecimal("\nIngrese el monto a depositar: RD$ ");
+                    Deposito transaccionDeposito = new Deposito(_numeroCuenta, montoDeposito);
+                    transaccionDeposito.Ejecutar(ref _saldoCuenta);
+                    Pausar();
+                    break;
 
-                if (cuentaAutenticada == null)
-                {
-                    Console.WriteLine(">> Error: Número de cuenta no registrado en la institución.");
-                    EsperarTecla();
-                    continue;
-                }
+                case "3":
+                    Console.WriteLine($"\n>> Saldo contable disponible: RD$ {_saldoCuenta:N2}");
+                    Pausar();
+                    break;
 
-                Console.Write("Ingrese su PIN de 4 dígitos: ");
-                string pinIngresado = Console.ReadLine() ?? "";
-
-                if (!cuentaAutenticada.ValidarPin(pinIngresado))
-                {
-                    Console.WriteLine(">> Error: PIN de seguridad incorrecto.");
-                    EsperarTecla();
-                    continue;
-                }
-
-                // Sesión autenticada exitosa
-                EjecutarSesionCliente(cuentaAutenticada);
+                case "4":
+                    Console.WriteLine("\n>> Sesión finalizada. Gracias por utilizar nuestro cajero.");
+                    enSesion = false;
+                    break;
             }
-        }
 
-        private void EjecutarSesionCliente(CuentaBancaria cuenta)
+        } while (enSesion);
+    }
+
+    // Métodos auxiliares de captura defensiva (evitan excepciones no controladas)
+    private static int CapturarEntero(string prompt)
+    {
+        int resultado;
+        Console.Write(prompt);
+        while (!int.TryParse(Console.ReadLine(), out resultado) || resultado <= 0)
         {
-            bool enSesion = true;
-
-            do
-            {
-                Console.Clear();
-                Console.WriteLine("==========================================================");
-                Console.WriteLine($" BIENVENIDO(A): {cuenta.NombreCompleto.ToUpper()}");
-                Console.WriteLine($" ID Único: [{cuenta.IdHex}] | Ocupación: {cuenta.Ocupacion}");
-                Console.WriteLine($" No. Cuenta: {cuenta.NumeroCuenta}");
-                Console.WriteLine("==========================================================");
-                Console.WriteLine("1. Consultar Saldo");
-                Console.WriteLine("2. Retirar Efectivo");
-                Console.WriteLine("3. Depositar Efectivo");
-                Console.WriteLine("4. Finalizar y Retirar Tarjeta");
-                Console.WriteLine("----------------------------------------------------------");
-                Console.Write("Seleccione una opción: ");
-
-                string opcion = Console.ReadLine() ?? "";
-
-                switch (opcion)
-                {
-                    case "1":
-                        Console.WriteLine($"\n>> Su saldo disponible actual es: RD$ {cuenta.Saldo:N2}");
-                        EsperarTecla();
-                        break;
-
-                    case "2":
-                        decimal montoRetiro = CapturarMonto("\nIngrese el monto a retirar: RD$ ");
-                        Retiro transaccionRetiro = new Retiro(cuenta.NumeroCuenta, montoRetiro, dispensador);
-                        transaccionRetiro.Ejecutar(cuenta);
-                        EsperarTecla();
-                        break;
-
-                    case "3":
-                        decimal montoDeposito = CapturarMonto("\nIngrese el monto a depositar: RD$ ");
-                        Deposito transaccionDeposito = new Deposito(cuenta.NumeroCuenta, montoDeposito);
-                        transaccionDeposito.Ejecutar(cuenta);
-                        EsperarTecla();
-                        break;
-
-                    case "4":
-                        Console.WriteLine("\n>> Gracias por preferir nuestros servicios. No olvide su comprobante.");
-                        enSesion = false;
-                        EsperarTecla();
-                        break;
-
-                    default:
-                        Console.WriteLine(">> Error: Opción no válida. Elija del 1 al 4.");
-                        EsperarTecla();
-                        break;
-                }
-
-            } while (enSesion);
+            Console.Write(">> Entrada no válida. Ingrese un número de cuenta positivo: ");
         }
+        return resultado;
+    }
 
-        private decimal CapturarMonto(string mensaje)
+    private static decimal CapturarDecimal(string prompt)
+    {
+        decimal resultado;
+        Console.Write(prompt);
+        while (!decimal.TryParse(Console.ReadLine(), out resultado) || resultado <= 0)
         {
-            decimal monto;
-            Console.Write(mensaje);
-            while (!decimal.TryParse(Console.ReadLine(), out monto) || monto <= 0)
-            {
-                Console.WriteLine(">> Error: Ingrese un valor monetario numérico mayor a cero.");
-                Console.Write(mensaje);
-            }
-            return monto;
+            Console.Write(">> Entrada no válida. Ingrese un monto positivo: ");
         }
+        return resultado;
+    }
 
-        private void EsperarTecla()
-        {
-            Console.WriteLine("\nPresione cualquier tecla para continuar...");
-            Console.ReadKey();
-        }
+    private static void Pausar()
+    {
+        Console.WriteLine("\nPresione Enter para continuar...");
+        Console.ReadLine();
     }
 }
