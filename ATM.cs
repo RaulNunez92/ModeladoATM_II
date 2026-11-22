@@ -13,7 +13,7 @@ public class ATM
         _dispensador = new DispensadorEfectivo(fondoCajeroInicial);
     }
 
-    // Método principal interactivo para la simulación
+    // Método principal interactivo
     public void Iniciar()
     {
         Console.Clear();
@@ -33,44 +33,51 @@ public class ATM
             Console.WriteLine($" SESIÓN ACTIVA | Cuenta: #{_numeroCuenta} | Saldo: RD$ {_saldoCuenta:N2}");
             Console.WriteLine($" Reserva física en Cajero: RD$ {_dispensador.EfectivoDisponible:N2}");
             Console.WriteLine("----------------------------------------------------------");
-            Console.WriteLine("1. Realizar Retiro de Efectivo");
-            Console.WriteLine("2. Consultar Saldo Actual");
-            Console.WriteLine("3. Finalizar Sesión");
-            Console.Write("Seleccione una opción (1-3): ");
+            Console.WriteLine("1. Consultar Saldo Actual");
+            Console.WriteLine("2. Realizar Depósito de Efectivo");
+            Console.WriteLine("3. Realizar Retiro de Efectivo");
+            Console.WriteLine("4. Finalizar Sesión");
+            Console.WriteLine("----------------------------------------------------------");
+            Console.Write("Seleccione una opción (1-4): ");
 
             string opcion = Console.ReadLine() ?? "";
 
             switch (opcion)
             {
-                case "1":
-                    decimal montoRetiro = CapturarDecimal("\nIngrese el monto a retirar: RD$ ");
-                    Retiro transaccionRetiro = new Retiro(_numeroCuenta, montoRetiro, _dispensador);
-                    transaccionRetiro.Ejecutar(ref _saldoCuenta);
+                case "1": // Consultar Saldo
+                    Console.WriteLine($"\n>> Saldo contable disponible: RD$ {_saldoCuenta:N2}");
                     Pausar();
                     break;
 
-                case "2":
+                case "2": // Depositar Dinero
                     decimal montoDeposito = CapturarDecimal("\nIngrese el monto a depositar: RD$ ");
                     Deposito transaccionDeposito = new Deposito(_numeroCuenta, montoDeposito);
                     transaccionDeposito.Ejecutar(ref _saldoCuenta);
                     Pausar();
                     break;
 
-                case "3":
-                    Console.WriteLine($"\n>> Saldo contable disponible: RD$ {_saldoCuenta:N2}");
+                case "3": // Retirar Dinero
+                    decimal montoRetiro = CapturarDecimal("\nIngrese el monto a retirar: RD$ ");
+                    Retiro transaccionRetiro = new Retiro(_numeroCuenta, montoRetiro, _dispensador);
+                    transaccionRetiro.Ejecutar(ref _saldoCuenta);
                     Pausar();
                     break;
 
-                case "4":
+                case "4": // Salir
                     Console.WriteLine("\n>> Sesión finalizada. Gracias por utilizar nuestro cajero.");
                     enSesion = false;
+                    break;
+
+                default:
+                    Console.WriteLine(">> Error: Opción no reconocida. Seleccione una opción entre 1 y 4.");
+                    Pausar();
                     break;
             }
 
         } while (enSesion);
     }
 
-    // Métodos auxiliares de captura defensiva (evitan excepciones no controladas)
+    // Métodos auxiliares de captura defensiva (evitan excepciones fatales)
     private static int CapturarEntero(string prompt)
     {
         int resultado;
